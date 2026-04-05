@@ -42,6 +42,9 @@ public class Job {
     @OneToOne(mappedBy = "job", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Quote quote;
 
+    @OneToOne(mappedBy = "job", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Payment payment;
+
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
 
@@ -66,6 +69,7 @@ public class Job {
     public BigDecimal getAgreedPrice() { return agreedPrice; }
     public List<JobItem> getItems() { return items; }
     public Quote getQuote() { return quote; }
+    public Payment getPayment() { return payment; }
     public LocalDateTime getScheduledAt() { return scheduledAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
@@ -79,6 +83,7 @@ public class Job {
     public void setAgreedPrice(BigDecimal agreedPrice) { this.agreedPrice = agreedPrice; }
     public void setItems(List<JobItem> items) { this.items = items; }
     public void setQuote(Quote quote) { this.quote = quote; }
+    public void setPayment(Payment payment) { this.payment = payment; }
     public void setScheduledAt(LocalDateTime scheduledAt) { this.scheduledAt = scheduledAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
