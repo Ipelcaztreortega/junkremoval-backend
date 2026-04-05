@@ -1,5 +1,6 @@
 package com.junktwinsllc.junkremoval.controller;
 
+import com.junktwinsllc.junkremoval.dto.JobDTO;
 import com.junktwinsllc.junkremoval.model.Job;
 import com.junktwinsllc.junkremoval.service.JobService;
 import org.springframework.http.HttpStatus;
@@ -7,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/jobs")
@@ -18,41 +20,41 @@ public class JobController {
         this.jobService = jobService;
     }
 
-    // POST /api/jobs?customerId=1
     @PostMapping
-    public ResponseEntity<Job> createJob(@RequestParam Long customerId, @RequestBody Job job) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(jobService.createJob(customerId, job));
+    public ResponseEntity<JobDTO> createJob(@RequestParam Long customerId, @RequestBody Job job) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(JobDTO.from(jobService.createJob(customerId, job)));
     }
 
-    // GET /api/jobs  |  ?customerId=1  |  ?status=QUOTED
     @GetMapping
-    public ResponseEntity<List<Job>> getJobs(
+    public ResponseEntity<List<JobDTO>> getJobs(
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) String status) {
-        if (customerId != null) return ResponseEntity.ok(jobService.getJobsByCustomer(customerId));
-        if (status != null)     return ResponseEntity.ok(jobService.getJobsByStatus(status));
-        return ResponseEntity.ok(jobService.getAllJobs());
+        List<Job> results;
+        if (customerId != null) results = jobService.getJobsByCustomer(customerId);
+        else if (status != null) results = jobService.getJobsByStatus(status);
+        else results = jobService.getAllJobs();
+        return ResponseEntity.ok(results.stream().map(JobDTO::from).collect(Collectors.toList()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Job> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(jobService.getJobById(id));
+    public ResponseEntity<JobDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(JobDTO.from(jobService.getJobById(id)));
     }
 
     @GetMapping("/contract/{contractNumber}")
-    public ResponseEntity<Job> getByContract(@PathVariable String contractNumber) {
-        return ResponseEntity.ok(jobService.getByContractNumber(contractNumber));
+    public ResponseEntity<JobDTO> getByContract(@PathVariable String contractNumber) {
+        return ResponseEntity.ok(JobDTO.from(jobService.getByContractNumber(contractNumber)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Job> updateJob(@PathVariable Long id, @RequestBody Job job) {
-        return ResponseEntity.ok(jobService.updateJob(id, job));
+    public ResponseEntity<JobDTO> updateJob(@PathVariable Long id, @RequestBody Job job) {
+        return ResponseEntity.ok(JobDTO.from(jobService.updateJob(id, job)));
     }
 
-    // PATCH /api/jobs/1/status?status=CONFIRMED
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Job> updateStatus(@PathVariable Long id, @RequestParam String status) {
-        return ResponseEntity.ok(jobService.updateStatus(id, status));
+    public ResponseEntity<JobDTO> updateStatus(@PathVariable Long id, @RequestParam String status) {
+        return ResponseEntity.ok(JobDTO.from(jobService.updateStatus(id, status)));
     }
 
     @DeleteMapping("/{id}")

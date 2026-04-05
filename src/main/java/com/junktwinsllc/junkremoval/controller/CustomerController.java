@@ -1,5 +1,6 @@
 package com.junktwinsllc.junkremoval.controller;
 
+import com.junktwinsllc.junkremoval.dto.CustomerDTO;
 import com.junktwinsllc.junkremoval.model.Customer;
 import com.junktwinsllc.junkremoval.service.CustomerService;
 import org.springframework.http.HttpStatus;
@@ -7,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/customers")
@@ -19,36 +21,37 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<Customer> createCustomer(@RequestBody Customer customer) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(customerService.createCustomer(customer));
+    public ResponseEntity<CustomerDTO> createCustomer(@RequestBody Customer customer) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CustomerDTO.from(customerService.createCustomer(customer)));
     }
 
     @GetMapping
-    public ResponseEntity<List<Customer>> getCustomers(@RequestParam(required = false) String name) {
-        if (name != null && !name.isBlank()) {
-            return ResponseEntity.ok(customerService.searchByName(name));
-        }
-        return ResponseEntity.ok(customerService.getAllCustomers());
+    public ResponseEntity<List<CustomerDTO>> getCustomers(@RequestParam(required = false) String name) {
+        List<Customer> results = (name != null && !name.isBlank())
+                ? customerService.searchByName(name)
+                : customerService.getAllCustomers();
+        return ResponseEntity.ok(results.stream().map(CustomerDTO::from).collect(Collectors.toList()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Customer> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(customerService.getCustomerById(id));
+    public ResponseEntity<CustomerDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(CustomerDTO.from(customerService.getCustomerById(id)));
     }
 
     @GetMapping("/email/{email}")
-    public ResponseEntity<Customer> getByEmail(@PathVariable String email) {
-        return ResponseEntity.ok(customerService.getByEmail(email));
+    public ResponseEntity<CustomerDTO> getByEmail(@PathVariable String email) {
+        return ResponseEntity.ok(CustomerDTO.from(customerService.getByEmail(email)));
     }
 
     @GetMapping("/phone/{phone}")
-    public ResponseEntity<Customer> getByPhone(@PathVariable String phone) {
-        return ResponseEntity.ok(customerService.getByPhone(phone));
+    public ResponseEntity<CustomerDTO> getByPhone(@PathVariable String phone) {
+        return ResponseEntity.ok(CustomerDTO.from(customerService.getByPhone(phone)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Customer> updateCustomer(@PathVariable Long id, @RequestBody Customer customer) {
-        return ResponseEntity.ok(customerService.updateCustomer(id, customer));
+    public ResponseEntity<CustomerDTO> updateCustomer(@PathVariable Long id, @RequestBody Customer customer) {
+        return ResponseEntity.ok(CustomerDTO.from(customerService.updateCustomer(id, customer)));
     }
 
     @DeleteMapping("/{id}")
