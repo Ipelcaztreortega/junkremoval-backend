@@ -61,6 +61,17 @@ public class AuthController {
         return ResponseEntity.ok(users);
     }
 
+    @PostMapping("/api/auth/register")
+    public ResponseEntity<?> register(@RequestBody User user) {
+        if (userRepository.existsByUsername(user.getUsername())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "Username already taken"));
+        }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User saved = userRepository.save(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(UserDTO.from(saved));
+    }
+
     // PROTECTED — remove a team member
     @DeleteMapping("/api/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {

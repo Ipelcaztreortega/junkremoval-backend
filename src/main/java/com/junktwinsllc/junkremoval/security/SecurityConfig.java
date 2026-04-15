@@ -31,6 +31,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/register").permitAll()
                         // Stripe webhook must be public — Stripe has no JWT token
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .anyRequest().authenticated()
