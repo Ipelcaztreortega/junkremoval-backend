@@ -3,9 +3,8 @@ package com.junktwinsllc.junkremoval.controller;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
-import com.stripe.model.PaymentIntent;
+import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
-import com.junktwinsllc.junkremoval.model.Job;
 import com.junktwinsllc.junkremoval.model.Payment;
 import com.junktwinsllc.junkremoval.repository.JobRepository;
 import com.junktwinsllc.junkremoval.repository.PaymentRepository;
@@ -34,8 +33,6 @@ public class WebhookController {
         this.paymentRepository = paymentRepository;
     }
 
-    // Stripe calls this endpoint when a payment succeeds
-    // Must be public — no JWT required (Stripe can't log in)
     @PostMapping("/stripe")
     public ResponseEntity<String> handleStripeWebhook(
             @RequestBody String payload,
@@ -47,19 +44,20 @@ public class WebhookController {
         try {
             event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
         } catch (SignatureVerificationException e) {
-            // Reject anything that didn't come from Stripe
             return ResponseEntity.badRequest().body("Invalid signature");
         }
 
-        if ("payment_intent.succeeded".equals(event.getType())) {
-            PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer()
+        // Payment Links fire checkout.session.completed, not payment_intent.succeeded
+        if ("checkout.session.completed".equals(event.getType())) {
+            Session session = (Session) event.getDataObjectDeserializer()
                     .getObject().orElse(null);
 
-            if (intent != null) {
-                String jobIdStr = intent.getMetadata().get("jobId");
+            if (session != null) {
+                String jobIdStr = session.getMetadata().get("jobId");
                 if (jobIdStr != null) {
                     Long jobId = Long.parseLong(jobIdStr);
-                    markJobAsPaid(jobId, intent.getAmountReceived());
+                    long amountInCents = session.getAmountTotal() != null ? session.getAmountTotal() : 0;
+                    markJobAsPaid(jobId, amountInCents);
                 }
             }
         }
@@ -69,11 +67,9 @@ public class WebhookController {
 
     private void markJobAsPaid(Long jobId, long amountInCents) {
         jobRepository.findById(jobId).ifPresent(job -> {
-            // Update job status
             job.setStatus("PAID");
             jobRepository.save(job);
 
-            // Record payment if one doesn't exist yet
             if (!paymentRepository.existsByJobId(jobId)) {
                 Payment payment = new Payment();
                 payment.setJob(job);
