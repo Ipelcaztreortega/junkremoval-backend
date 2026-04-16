@@ -3,6 +3,7 @@ package com.junktwinsllc.junkremoval.controller;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.junktwinsllc.junkremoval.model.Payment;
@@ -47,17 +48,26 @@ public class WebhookController {
             return ResponseEntity.badRequest().body("Invalid signature");
         }
 
-        // Payment Links fire checkout.session.completed, not payment_intent.succeeded
-        if ("checkout.session.completed".equals(event.getType())) {
-            Session session = (Session) event.getDataObjectDeserializer()
-                    .getObject().orElse(null);
-
-            if (session != null) {
-                String jobIdStr = session.getMetadata().get("jobId");
-                if (jobIdStr != null) {
-                    Long jobId = Long.parseLong(jobIdStr);
-                    long amountInCents = session.getAmountTotal() != null ? session.getAmountTotal() : 0;
-                    markJobAsPaid(jobId, amountInCents);
+        switch (event.getType()) {
+            case "checkout.session.completed" -> {
+                Session session = (Session) event.getDataObjectDeserializer()
+                        .getObject().orElse(null);
+                if (session != null) {
+                    String jobIdStr = session.getMetadata().get("jobId");
+                    if (jobIdStr != null) {
+                        long amount = session.getAmountTotal() != null ? session.getAmountTotal() : 0;
+                        markJobAsPaid(Long.parseLong(jobIdStr), amount);
+                    }
+                }
+            }
+            case "payment_intent.succeeded" -> {
+                PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer()
+                        .getObject().orElse(null);
+                if (intent != null) {
+                    String jobIdStr = intent.getMetadata().get("jobId");
+                    if (jobIdStr != null) {
+                        markJobAsPaid(Long.parseLong(jobIdStr), intent.getAmountReceived());
+                    }
                 }
             }
         }
